@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mr. + Mrs. Shelburne · Coffee Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#120d09">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <header class="hero">
+    <h1 class="script">Mr. + Mrs. Shelburne</h1>
+    <p class="caps date">11.1.26</p>
+    <div class="ornament"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M16 17C13 12 12.5 7 16 2c3.5 5 3 10 0 15z"/><path d="M16 17C10 16 5.5 12.5 4 7c6 .5 10 4 12 10z"/><path d="M16 17c6-1 10.500-4.500 12-10-6 .5-10 4-12 10z"/><path d="M16 17c-3 3-3.500 8-1 13M16 17c3 3 3.500 8 1 13" opacity=".6"/><path d="M16 17v7" opacity=".6"/></svg></div>
+    <p class="sub">Freshly pulled espresso, made to order</p>
+  </header>
+  <div id="closed" class="banner hidden"></div>
+
+  <section id="mine" class="card hidden">
+    <div class="muted">Your order <span id="mnum"></span></div>
+    <div class="status" id="mstatus"></div>
+    <div id="mdesc" class="muted"></div>
+    <div class="actions">
+      <button id="cancelBtn" class="small hidden">Cancel order</button>
+      <button id="againBtn" class="small hidden">Order another</button>
+    </div>
+  </section>
+
+  <form id="form">
+    <label for="name">Your name</label>
+    <input type="text" id="name" maxlength="40" autocomplete="given-name" placeholder="e.g. Aunt Sarah" required>
+
+    <label>Drink</label>
+    <div id="drinks"></div>
+
+    <div id="tempWrap"><label>Hot or iced</label><div class="chips" id="temps"></div></div>
+    <div id="flavorWrap"><label>Flavors <span class="muted" style="text-transform:none;letter-spacing:0">(optional: leave blank for plain)</span></label><div class="chips" id="flavors"></div></div>
+    <div id="recipeWrap" class="hidden"><label>Signature recipe</label><p id="recipe" class="muted" style="margin:0"></p></div>
+    <div id="milkWrap"><label>Milk</label><div class="chips" id="milks"></div></div>
+    <div id="sizeWrap"><label>Size</label><div class="chips" id="sizes"></div></div>
+
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" rows="2" maxlength="200" placeholder="Extra hot, half sweet, decaf..."></textarea>
+
+    <button class="primary" id="submit" type="submit">Place order</button>
+    <div class="err" id="err"></div>
+  </form>
+
+  <h2>The Queue</h2>
+  <div id="queue"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let S = null, sel = { drinkId: null, temp: null, milk: null, size: null, flavors: [] };
+let myId = localStorage.getItem('orderId');
+let lastStatus = null;
+
+const LABEL = { waiting: 'In the queue', making: 'Being prepared', ready: 'Your coffee is ready', picked_up: 'Enjoy, with our love', cancelled: 'Cancelled' };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function chips(el, items, key, onPick) {
+  el.innerHTML = '';
+  items.forEach((v) => {
+    const b = document.createElement('div');
+    b.className = 'chip' + (sel[key] === v ? ' on' : '');
+    b.textContent = v;
+    b.onclick = () => { sel[key] = v; onPick(); };
+    el.appendChild(b);
+  });
+}
+
+function renderForm() {
+  const drinks = $('drinks');
+  drinks.innerHTML = '';
+  let section = null;
+  S.menu.forEach((d) => {
+    if (d.section !== section) {
+      section = d.section;
+      const h = document.createElement('div');
+      h.className = 'section';
+      h.textContent = section;
+      drinks.appendChild(h);
+    }
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'drink' + (sel.drinkId === d.id ? ' on' : '');
+    b.disabled = !d.available;
+    b.innerHTML = `<span class="emoji">${esc(d.emoji || '')}</span><span class="dtext">${esc(d.name)}<small>${esc(d.desc)}</small></span>${d.available ? '' : '<small>sold out</small>'}`;
+    b.onclick = () => { sel.drinkId = d.id; sel.temp = null; sel.milk = null; sel.flavors = []; renderForm(); };
+    drinks.appendChild(b);
+  });
+  const d = S.menu.find((x) => x.id === sel.drinkId && x.available);
+  if (!d) sel.drinkId = null;
+  $('tempWrap').classList.toggle('hidden', !d || d.temps.length < 2);
+  $('milkWrap').classList.toggle('hidden', !d || !d.milk || !S.milks.length);
+  $('flavorWrap').classList.toggle('hidden', !d || !d.flavors || !S.flavors.length);
+  $('recipeWrap').classList.toggle('hidden', !d || !d.recipe);
+  if (d && d.recipe) $('recipe').textContent = d.recipe + ' (already included, no extra flavors)';
+  $('sizeWrap').classList.toggle('hidden', !d || !S.sizes.length);
+  if (d) {
+    if (!d.temps.includes(sel.temp)) sel.temp = d.temps[0];
+    if (!S.milks.includes(sel.milk)) sel.milk = S.milks[0];
+    if (!S.sizes.includes(sel.size)) sel.size = S.sizes.includes('Regular') ? 'Regular' : S.sizes[0];
+    chips($('temps'), d.temps, 'temp', renderForm);
+    chips($('milks'), S.milks, 'milk', renderForm);
+    chips($('sizes'), S.sizes, 'size', renderForm);
+    const fl = $('flavors');
+    fl.innerHTML = '';
+    S.flavors.forEach((f) => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (sel.flavors.includes(f) ? ' on' : '');
+      c.textContent = f;
+      c.onclick = () => {
+        sel.flavors = sel.flavors.includes(f) ? sel.flavors.filter((x) => x !== f) : [...sel.flavors, f];
+        renderForm();
+      };
+      fl.appendChild(c);
+    });
+  }
+  const mine = myOrder();
+  const blocked = mine && ['waiting', 'making', 'ready'].includes(mine.status);
+  $('submit').disabled = !S.accepting || !sel.drinkId || blocked;
+  $('submit').textContent = blocked ? 'You have a drink in the queue' : 'Place order';
+}
+
+function myOrder() {
+  if (!myId || !S) return null;
+  const q = S.queue.find((o) => o.id === myId);
+  if (q) return q;
+  const d = S.done.find((o) => o.id === myId);
+  return d ? { ...d, name: '' } : null;
+}
+
+function renderMine() {
+  const o = myOrder();
+  $('mine').classList.toggle('hidden', !o);
+  if (!o) return;
+  $('mnum').textContent = '#' + o.number;
+  let text = LABEL[o.status];
+  if (o.status === 'waiting') text += o.position > 1 ? ` (${o.position - 1} ahead of you)` : ' (you\'re next)';
+  $('mstatus').textContent = text;
+  $('mstatus').className = 'status ' + o.status;
+  $('mdesc').textContent = o.status === 'ready' ? 'Please find the barista.' : '';
+  $('cancelBtn').classList.toggle('hidden', o.status !== 'waiting');
+  $('againBtn').classList.toggle('hidden', !['picked_up', 'cancelled'].includes(o.status));
+  if (o.status === 'ready' && lastStatus !== 'ready') {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+    document.title = 'Your coffee is ready';
+  } else if (o.status !== 'ready') document.title = 'Coffee Bar';
+  lastStatus = o.status;
+}
+
+function renderQueue() {
+  const q = $('queue');
+  if (!S.queue.length) { q.innerHTML = '<p class="muted">No orders yet. Be the first.</p>'; return; }
+  q.innerHTML = S.queue.map((o) =>
+    `<div class="card row" ${o.id === myId ? 'style="border-color:var(--accent)"' : ''}>
+      <div><b>#${o.number}</b> ${esc(o.name)}${o.id === myId ? ' (you)' : ''}</div>
+      <span class="pill ${o.status}">${o.status === 'waiting' ? 'waiting' : o.status}</span></div>`).join('');
+}
+
+function render() {
+  const closed = $('closed');
+  closed.classList.toggle('hidden', S.accepting);
+  closed.textContent = S.message || "We're not taking orders right now. Check back soon!";
+  renderForm(); renderMine(); renderQueue();
+}
+
+function connect() {
+  const es = new EventSource('/api/stream');
+  es.onmessage = (e) => { S = JSON.parse(e.data); render(); };
+}
+
+$('form').onsubmit = async (e) => {
+  e.preventDefault();
+  $('err').textContent = '';
+  $('submit').disabled = true;
+  const r = await fetch('/api/orders', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: $('name').value, drinkId: sel.drinkId, temp: sel.temp, milk: sel.milk, size: sel.size, flavors: sel.flavors, notes: $('notes').value }),
+  });
+  const j = await r.json();
+  if (!r.ok) { $('err').textContent = j.error; renderForm(); return; }
+  localStorage.setItem('name', $('name').value);
+  localStorage.setItem('orderId', j.id);
+  myId = j.id; lastStatus = null;
+  $('notes').value = '';
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+$('cancelBtn').onclick = async () => {
+  if (!confirm('Cancel your order?')) return;
+  await fetch(`/api/orders/${myId}/cancel`, { method: 'POST' });
+};
+$('againBtn').onclick = () => { myId = null; localStorage.removeItem('orderId'); render(); };
+
+$('name').value = localStorage.getItem('name') || '';
+fetch('/api/state').then((r) => r.json()).then((s) => { S = s; render(); connect(); });
+</script>
+</body>
+</html>
