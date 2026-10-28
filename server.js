@@ -19,7 +19,6 @@ const defaultState = () => ({
   accepting: true,
   message: '',
   milks: ['Whole', 'Oat', 'Almond', 'Skim'],
-  sizes: ['Small', 'Regular', 'Large'],
   flavors: ['Pumpkin Spice', 'Vanilla', 'Honey', 'Cinnamon', 'Maple', 'Sea Salt', 'Blueberry', 'Brown Sugar'],
   menu: [
     { id: 'espresso', name: 'Espresso', emoji: '☕', section: 'Classics', desc: 'A straight shot', temps: ['hot'], milk: false, flavors: true, recipe: '', available: true },
@@ -42,6 +41,7 @@ try {
   const saved = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
   // data saved by an older version without flavors keeps its orders but gets the new menu
   if (!saved.flavors) { delete saved.menu; delete saved.milks; }
+  delete saved.sizes;
   state = { ...state, ...saved };
 } catch { /* first run */ }
 
@@ -63,7 +63,6 @@ function publicView() {
     accepting: state.accepting,
     message: state.message,
     milks: state.milks,
-    sizes: state.sizes,
     flavors: state.flavors,
     menu: state.menu,
     queue: active.map((o, i) => ({
@@ -115,7 +114,7 @@ function notify(order) {
 }
 function describe(o) {
   const extras = [o.milk && `${o.milk} milk`, ...(o.flavors || [])].filter(Boolean);
-  return [o.size, o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+  return [o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 }
 
 // ---------- helpers ----------
@@ -159,7 +158,6 @@ async function handleApi(req, res, url) {
     if (!item || !item.available) return send(res, 400, { error: 'That drink is not available.' });
     const temp = item.temps.includes(b.temp) ? b.temp : item.temps[0];
     const milk = item.milk ? (state.milks.includes(b.milk) ? b.milk : state.milks[0]) : '';
-    const size = state.sizes.length ? (state.sizes.includes(b.size) ? b.size : state.sizes[0]) : '';
     if (state.orders.some((o) => ACTIVE.includes(o.status) && norm(o.name) === norm(name))) {
       return send(res, 409, { error: `${name} already has a drink in the queue. Once it's picked up you can order again!` });
     }
@@ -167,7 +165,7 @@ async function handleApi(req, res, url) {
     const order = {
       id: crypto.randomBytes(6).toString('hex'),
       number: state.nextNumber++,
-      name, drinkId: item.id, drinkName: item.name, recipe: item.recipe, temp, milk, size, flavors,
+      name, drinkId: item.id, drinkName: item.name, recipe: item.recipe, temp, milk, flavors,
       notes: clean(b.notes, 200),
       status: 'waiting',
       createdAt: Date.now(),
@@ -211,7 +209,6 @@ async function handleApi(req, res, url) {
       if (typeof b.message === 'string') state.message = clean(b.message, 200);
       if (Array.isArray(b.milks)) state.milks = b.milks.map((s) => clean(s, 30)).filter(Boolean).slice(0, 12);
       if (Array.isArray(b.flavors)) state.flavors = b.flavors.map((s) => clean(s, 30)).filter(Boolean).slice(0, 20);
-      if (Array.isArray(b.sizes)) state.sizes = b.sizes.map((s) => clean(s, 30)).filter(Boolean).slice(0, 6);
       save(); broadcast();
       return send(res, 200, { ok: true });
     }

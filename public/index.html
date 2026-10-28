@@ -41,7 +41,6 @@
     <div id="flavorWrap"><label>Flavors <span class="muted" style="text-transform:none;letter-spacing:0">(optional: leave blank for plain)</span></label><div class="chips" id="flavors"></div></div>
     <div id="recipeWrap" class="hidden"><label>Signature recipe</label><p id="recipe" class="muted" style="margin:0"></p></div>
     <div id="milkWrap"><label>Milk</label><div class="chips" id="milks"></div></div>
-    <div id="sizeWrap"><label>Size</label><div class="chips" id="sizes"></div></div>
 
     <label for="notes">Notes (optional)</label>
     <textarea id="notes" rows="2" maxlength="200" placeholder="Extra hot, half sweet, decaf..."></textarea>
@@ -55,7 +54,7 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-let S = null, sel = { drinkId: null, temp: null, milk: null, size: null, flavors: [] };
+let S = null, sel = { drinkId: null, temp: null, milk: null, flavors: [] };
 let myId = localStorage.getItem('orderId');
 let lastStatus = null;
 
@@ -100,14 +99,11 @@ function renderForm() {
   $('flavorWrap').classList.toggle('hidden', !d || !d.flavors || !S.flavors.length);
   $('recipeWrap').classList.toggle('hidden', !d || !d.recipe);
   if (d && d.recipe) $('recipe').textContent = d.recipe + ' (already included, no extra flavors)';
-  $('sizeWrap').classList.toggle('hidden', !d || !S.sizes.length);
   if (d) {
     if (!d.temps.includes(sel.temp)) sel.temp = d.temps[0];
     if (!S.milks.includes(sel.milk)) sel.milk = S.milks[0];
-    if (!S.sizes.includes(sel.size)) sel.size = S.sizes.includes('Regular') ? 'Regular' : S.sizes[0];
     chips($('temps'), d.temps, 'temp', renderForm);
     chips($('milks'), S.milks, 'milk', renderForm);
-    chips($('sizes'), S.sizes, 'size', renderForm);
     const fl = $('flavors');
     fl.innerHTML = '';
     S.flavors.forEach((f) => {
@@ -181,7 +177,7 @@ $('form').onsubmit = async (e) => {
   $('submit').disabled = true;
   const r = await fetch('/api/orders', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: $('name').value, drinkId: sel.drinkId, temp: sel.temp, milk: sel.milk, size: sel.size, flavors: sel.flavors, notes: $('notes').value }),
+    body: JSON.stringify({ name: $('name').value, drinkId: sel.drinkId, temp: sel.temp, milk: sel.milk, flavors: sel.flavors, notes: $('notes').value }),
   });
   const j = await r.json();
   if (!r.ok) { $('err').textContent = j.error; renderForm(); return; }
