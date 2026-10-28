@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Coffee Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#120d09">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <main>
-  <h1>☕ Coffee Bar</h1>
-  <p class="muted" id="sub">Freshly pulled espresso, made to order.</p>
+  <header class="hero">
+    <p class="caps">Espresso &amp; Coffee</p>
+    <h1 class="script">The Coffee Bar</h1>
+    <div class="ornament"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M16 17C13 12 12.5 7 16 2c3.5 5 3 10 0 15z"/><path d="M16 17C10 16 5.5 12.5 4 7c6 .5 10 4 12 10z"/><path d="M16 17c6-1 10.500-4.500 12-10-6 .5-10 4-12 10z"/><path d="M16 17c-3 3-3.500 8-1 13M16 17c3 3 3.500 8 1 13" opacity=".6"/><path d="M16 17v7" opacity=".6"/></svg></div>
+    <p class="sub">Freshly pulled, made to order.</p>
+  </header>
   <div id="closed" class="banner hidden"></div>
 
   <section id="mine" class="card hidden">
@@ -40,7 +48,7 @@
     <div class="err" id="err"></div>
   </form>
 
-  <h2>In the queue</h2>
+  <h2>The Queue</h2>
   <div id="queue"></div>
 </main>
 <script>
@@ -49,7 +57,7 @@ let S = null, sel = { drinkId: null, temp: null, milk: null, size: null };
 let myId = localStorage.getItem('orderId');
 let lastStatus = null;
 
-const LABEL = { waiting: 'Waiting in line', making: 'Being made ☕', ready: 'Ready! Come grab it 🎉', picked_up: 'Picked up. Enjoy!', cancelled: 'Cancelled' };
+const LABEL = { waiting: 'In the queue', making: 'Being prepared', ready: 'Your coffee is ready', picked_up: 'Enjoy, with our love', cancelled: 'Cancelled' };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function chips(el, items, key, onPick) {
@@ -108,22 +116,22 @@ function renderMine() {
   if (!o) return;
   $('mnum').textContent = '#' + o.number;
   let text = LABEL[o.status];
-  if (o.status === 'waiting') text += o.position > 1 ? ` (${o.position - 1} ahead of you)` : ' (you\'re next!)';
+  if (o.status === 'waiting') text += o.position > 1 ? ` (${o.position - 1} ahead of you)` : ' (you\'re next)';
   $('mstatus').textContent = text;
   $('mstatus').className = 'status ' + o.status;
-  $('mdesc').textContent = o.status === 'ready' ? 'Find the barista!' : '';
+  $('mdesc').textContent = o.status === 'ready' ? 'Please find the barista.' : '';
   $('cancelBtn').classList.toggle('hidden', o.status !== 'waiting');
   $('againBtn').classList.toggle('hidden', !['picked_up', 'cancelled'].includes(o.status));
   if (o.status === 'ready' && lastStatus !== 'ready') {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
-    document.title = '✅ Your coffee is ready!';
+    document.title = 'Your coffee is ready';
   } else if (o.status !== 'ready') document.title = 'Coffee Bar';
   lastStatus = o.status;
 }
 
 function renderQueue() {
   const q = $('queue');
-  if (!S.queue.length) { q.innerHTML = '<p class="muted">Nobody yet. Be the first!</p>'; return; }
+  if (!S.queue.length) { q.innerHTML = '<p class="muted">No orders yet. Be the first.</p>'; return; }
   q.innerHTML = S.queue.map((o) =>
     `<div class="card row" ${o.id === myId ? 'style="border-color:var(--accent)"' : ''}>
       <div><b>#${o.number}</b> ${esc(o.name)}${o.id === myId ? ' (you)' : ''}</div>
