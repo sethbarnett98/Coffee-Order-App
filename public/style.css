@@ -18,7 +18,7 @@ body {
 main { max-width:560px; margin:0 auto; padding:20px 18px 60px; }
 
 header.hero { text-align:center; padding:18px 0 6px; }
-.hero .script { font:400 3.2rem/1.05 var(--script); color:var(--ink); margin:6px 0 0; text-shadow:0 0 24px rgba(214,160,80,.35); }
+.hero .script { font:400 2.9rem/1.1 var(--script); color:var(--ink); margin:6px 0 0; text-shadow:0 0 24px rgba(214,160,80,.35); }
 .hero .caps { font-size:.82rem; letter-spacing:.32em; text-transform:uppercase; color:var(--accent); margin:6px 0 0; }
 .ornament { display:flex; align-items:center; gap:12px; justify-content:center; color:var(--accent); margin:14px 0 4px; }
 .ornament::before, .ornament::after { content:''; height:1px; width:70px; background:linear-gradient(90deg,transparent,var(--accent)); }
@@ -75,3 +75,5 @@ button.small { padding:8px 12px; font-size:.72rem; }
 .section::before, .section::after { content:'·'; margin:0 10px; }
 .drink .emoji { font-size:1.5rem; width:2rem; text-align:center; flex:none; filter:saturate(.7); }
 .drink .dtext { flex:1; }
+.hero .caps.date { margin:2px 0 0; }
+.hero .caps.date { font-variant-numeric:lining-nums; font-size:.95rem; }
