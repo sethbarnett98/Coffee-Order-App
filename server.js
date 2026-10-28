@@ -28,7 +28,6 @@ const defaultState = () => ({
     { id: 'flat-white', name: 'Flat White', emoji: '🤍', section: 'Classics', desc: 'Velvety microfoam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
     { id: 'americano', name: 'Americano', emoji: '💧', section: 'Classics', desc: 'Espresso with hot water', temps: ['hot', 'iced'], milk: false, flavors: true, recipe: '', available: true },
     { id: 'cortado', name: 'Cortado', emoji: '🫘', section: 'Classics', desc: 'Equal parts espresso and warm milk', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
-    { id: 'cold-brew', name: 'Cold Brew', emoji: '🧊', section: 'Classics', desc: 'Slow-steeped and smooth', temps: ['iced'], milk: false, flavors: true, recipe: '', available: true },
     { id: 'honey-honey', name: '“Honey, Honey”', emoji: '🍯', section: 'Wedding Weekend', desc: 'Latte with honey, vanilla bean paste and sea salt', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Honey, vanilla bean paste, sea salt', available: true },
     { id: 'sunday-morning-toast', name: '“Sunday Morning Toast”', emoji: '🥂', section: 'Wedding Weekend', desc: 'Cappuccino with brown sugar, maple syrup and cinnamon', temps: ['hot'], milk: true, flavors: false, recipe: 'Brown sugar, maple syrup, cinnamon', available: true },
     { id: 'woodbine-maple', name: '“Woodbine Maple”', emoji: '🍁', section: 'Wedding Weekend', desc: 'Maple sea salt cortado', temps: ['hot'], milk: true, flavors: false, recipe: 'Maple, sea salt', available: true },
