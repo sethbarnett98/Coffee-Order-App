@@ -45,8 +45,6 @@
       <input type="text" id="milks">
       <label for="flavors">Flavors (comma separated)</label>
       <input type="text" id="flavors">
-      <label for="sizes">Sizes (comma separated)</label>
-      <input type="text" id="sizes">
       <button id="saveSettings" class="primary">Save settings</button>
     </div>
 
@@ -84,7 +82,7 @@ function beep() {
 
 const desc = (o) => {
   const extras = [o.milk && o.milk + ' milk', ...(o.flavors || [])].filter(Boolean);
-  return [o.size, o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+  return [o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 };
 const NEXT = { waiting: ['making', 'Start'], making: ['ready', 'Ready'], ready: ['picked_up', 'Picked up'] };
 
@@ -117,7 +115,6 @@ function render() {
     $('message').value = S.message;
     $('milks').value = S.milks.join(', ');
     $('flavors').value = S.flavors.join(', ');
-    $('sizes').value = S.sizes.join(', ');
   }
   if (!menuDraft) { menuDraft = JSON.parse(JSON.stringify(S.menu)); renderMenu(); }
 }
@@ -188,7 +185,7 @@ $('soundBtn').onclick = () => {
 };
 $('saveSettings').onclick = async () => {
   const list = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
-  await api('settings', { message: $('message').value, milks: list($('milks').value), flavors: list($('flavors').value), sizes: list($('sizes').value) });
+  await api('settings', { message: $('message').value, milks: list($('milks').value), flavors: list($('flavors').value) });
 };
 $('addItem').onclick = () => { menuDraft.push({ id: '', name: '', emoji: '', section: 'Classics', desc: '', temps: ['hot'], milk: false, flavors: true, recipe: '', available: true }); renderMenu(); };
 $('saveMenu').onclick = async () => {

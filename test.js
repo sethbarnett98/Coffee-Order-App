@@ -11,7 +11,7 @@ server.listen(0, async () => {
   }).then(async (r) => ({ status: r.status, body: await r.json() }));
   const admin = { 'x-admin-key': 'pw' };
   try {
-    let r = await j('/api/orders', { name: 'Ann', drinkId: 'latte', temp: 'iced', milk: 'Oat', size: 'Large', flavors: ['Vanilla', 'Bogus'] });
+    let r = await j('/api/orders', { name: 'Ann', drinkId: 'latte', temp: 'iced', milk: 'Oat', flavors: ['Vanilla', 'Bogus'] });
     assert.equal(r.status, 201);
     const annId = r.body.id;
     r = await j('/api/admin/state', null, { 'x-admin-key': 'pw' });
