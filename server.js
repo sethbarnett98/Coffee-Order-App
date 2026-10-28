@@ -20,13 +20,19 @@ const defaultState = () => ({
   message: '',
   milks: ['Whole', 'Oat', 'Almond', 'Skim'],
   sizes: ['Small', 'Regular', 'Large'],
+  flavors: ['Pumpkin Spice', 'Vanilla', 'Honey', 'Cinnamon', 'Maple', 'Sea Salt', 'Blueberry', 'Brown Sugar'],
   menu: [
-    { id: 'espresso', name: 'Espresso', desc: 'A straight shot', temps: ['hot'], milk: false, available: true },
-    { id: 'americano', name: 'Americano', desc: 'Espresso with water', temps: ['hot', 'iced'], milk: false, available: true },
-    { id: 'latte', name: 'Latte', desc: 'Espresso with steamed milk', temps: ['hot', 'iced'], milk: true, available: true },
-    { id: 'cappuccino', name: 'Cappuccino', desc: 'Espresso with foamy milk', temps: ['hot'], milk: true, available: true },
-    { id: 'flatwhite', name: 'Flat White', desc: 'Velvety microfoam', temps: ['hot'], milk: true, available: true },
-    { id: 'mocha', name: 'Mocha', desc: 'Latte with chocolate', temps: ['hot', 'iced'], milk: true, available: true },
+    { id: 'espresso', name: 'Espresso', emoji: '☕', section: 'Classics', desc: 'A straight shot', temps: ['hot'], milk: false, flavors: true, recipe: '', available: true },
+    { id: 'latte', name: 'Latte', emoji: '🥛', section: 'Classics', desc: 'Espresso with steamed milk', temps: ['hot', 'iced'], milk: true, flavors: true, recipe: '', available: true },
+    { id: 'cappuccino', name: 'Cappuccino', emoji: '☁️', section: 'Classics', desc: 'Espresso with airy foam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
+    { id: 'flat-white', name: 'Flat White', emoji: '🤍', section: 'Classics', desc: 'Velvety microfoam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
+    { id: 'americano', name: 'Americano', emoji: '💧', section: 'Classics', desc: 'Espresso with hot water', temps: ['hot', 'iced'], milk: false, flavors: true, recipe: '', available: true },
+    { id: 'cortado', name: 'Cortado', emoji: '🫘', section: 'Classics', desc: 'Equal parts espresso and warm milk', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
+    { id: 'cold-brew', name: 'Cold Brew', emoji: '🧊', section: 'Classics', desc: 'Slow-steeped and smooth', temps: ['iced'], milk: false, flavors: true, recipe: '', available: true },
+    { id: 'honey-honey', name: '“Honey, Honey”', emoji: '🍯', section: 'Wedding Weekend', desc: 'Latte with honey, vanilla bean paste and sea salt', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Honey, vanilla bean paste, sea salt', available: true },
+    { id: 'sunday-morning-toast', name: '“Sunday Morning Toast”', emoji: '🥂', section: 'Wedding Weekend', desc: 'Cappuccino with brown sugar, maple syrup and cinnamon', temps: ['hot'], milk: true, flavors: false, recipe: 'Brown sugar, maple syrup, cinnamon', available: true },
+    { id: 'woodbine-maple', name: '“Woodbine Maple”', emoji: '🍁', section: 'Wedding Weekend', desc: 'Maple sea salt cortado', temps: ['hot'], milk: true, flavors: false, recipe: 'Maple, sea salt', available: true },
+    { id: 'something-blue', name: '“Something Blue”', emoji: '🫐', section: 'Wedding Weekend', desc: 'Latte with blueberry and vanilla', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Blueberry, vanilla', available: true },
   ],
   orders: [],
   nextNumber: 1,
@@ -34,7 +40,10 @@ const defaultState = () => ({
 
 let state = defaultState();
 try {
-  state = { ...state, ...JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')) };
+  const saved = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  // data saved by an older version without flavors keeps its orders but gets the new menu
+  if (!saved.flavors) { delete saved.menu; delete saved.milks; }
+  state = { ...state, ...saved };
 } catch { /* first run */ }
 
 let saveTimer = null;
@@ -56,6 +65,7 @@ function publicView() {
     message: state.message,
     milks: state.milks,
     sizes: state.sizes,
+    flavors: state.flavors,
     menu: state.menu,
     queue: active.map((o, i) => ({
       id: o.id, number: o.number, name: o.name, status: o.status, position: i + 1,
@@ -105,7 +115,8 @@ function notify(order) {
   }).catch((e) => console.error('ntfy failed:', e.message));
 }
 function describe(o) {
-  return [o.size, o.temp, o.milk && `${o.milk} milk`, o.drinkName].filter(Boolean).join(' ');
+  const extras = [o.milk && `${o.milk} milk`, ...(o.flavors || [])].filter(Boolean);
+  return [o.size, o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 }
 
 // ---------- helpers ----------
@@ -153,10 +164,11 @@ async function handleApi(req, res, url) {
     if (state.orders.some((o) => ACTIVE.includes(o.status) && norm(o.name) === norm(name))) {
       return send(res, 409, { error: `${name} already has a drink in the queue. Once it's picked up you can order again!` });
     }
+    const flavors = item.flavors && Array.isArray(b.flavors) ? state.flavors.filter((f) => b.flavors.includes(f)) : [];
     const order = {
       id: crypto.randomBytes(6).toString('hex'),
       number: state.nextNumber++,
-      name, drinkId: item.id, drinkName: item.name, temp, milk, size,
+      name, drinkId: item.id, drinkName: item.name, recipe: item.recipe, temp, milk, size, flavors,
       notes: clean(b.notes, 200),
       status: 'waiting',
       createdAt: Date.now(),
@@ -199,6 +211,7 @@ async function handleApi(req, res, url) {
       if (typeof b.accepting === 'boolean') state.accepting = b.accepting;
       if (typeof b.message === 'string') state.message = clean(b.message, 200);
       if (Array.isArray(b.milks)) state.milks = b.milks.map((s) => clean(s, 30)).filter(Boolean).slice(0, 12);
+      if (Array.isArray(b.flavors)) state.flavors = b.flavors.map((s) => clean(s, 30)).filter(Boolean).slice(0, 20);
       if (Array.isArray(b.sizes)) state.sizes = b.sizes.map((s) => clean(s, 30)).filter(Boolean).slice(0, 6);
       save(); broadcast();
       return send(res, 200, { ok: true });
@@ -214,7 +227,7 @@ async function handleApi(req, res, url) {
         while (seen.has(id)) id += '-2';
         seen.add(id);
         const temps = ['hot', 'iced'].filter((t) => (it.temps || []).includes(t));
-        return { id, name, desc: clean(it.desc, 100), temps: temps.length ? temps : ['hot'], milk: !!it.milk, available: it.available !== false };
+        return { id, name, emoji: clean(it.emoji, 4), section: clean(it.section, 30) || 'Classics', desc: clean(it.desc, 120), temps: temps.length ? temps : ['hot'], milk: !!it.milk, flavors: !!it.flavors, recipe: clean(it.recipe, 120), available: it.available !== false };
       }).filter((it) => it.name);
       save(); broadcast();
       return send(res, 200, { ok: true });

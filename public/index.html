@@ -38,6 +38,7 @@
     <div id="drinks"></div>
 
     <div id="tempWrap"><label>Hot or iced</label><div class="chips" id="temps"></div></div>
+    <div id="flavorWrap"><label>Flavors <span class="muted" style="text-transform:none;letter-spacing:0">(choose any)</span></label><div class="chips" id="flavors"></div></div>
     <div id="milkWrap"><label>Milk</label><div class="chips" id="milks"></div></div>
     <div id="sizeWrap"><label>Size</label><div class="chips" id="sizes"></div></div>
 
@@ -53,7 +54,7 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-let S = null, sel = { drinkId: null, temp: null, milk: null, size: null };
+let S = null, sel = { drinkId: null, temp: null, milk: null, size: null, flavors: [] };
 let myId = localStorage.getItem('orderId');
 let lastStatus = null;
 
@@ -74,19 +75,28 @@ function chips(el, items, key, onPick) {
 function renderForm() {
   const drinks = $('drinks');
   drinks.innerHTML = '';
+  let section = null;
   S.menu.forEach((d) => {
+    if (d.section !== section) {
+      section = d.section;
+      const h = document.createElement('div');
+      h.className = 'section';
+      h.textContent = section;
+      drinks.appendChild(h);
+    }
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'drink' + (sel.drinkId === d.id ? ' on' : '');
     b.disabled = !d.available;
-    b.innerHTML = `<span>${esc(d.name)}<small>${esc(d.desc)}</small></span>${d.available ? '' : '<small>sold out</small>'}`;
-    b.onclick = () => { sel.drinkId = d.id; sel.temp = null; sel.milk = null; renderForm(); };
+    b.innerHTML = `<span class="emoji">${esc(d.emoji || '')}</span><span class="dtext">${esc(d.name)}<small>${esc(d.desc)}</small></span>${d.available ? '' : '<small>sold out</small>'}`;
+    b.onclick = () => { sel.drinkId = d.id; sel.temp = null; sel.milk = null; sel.flavors = []; renderForm(); };
     drinks.appendChild(b);
   });
   const d = S.menu.find((x) => x.id === sel.drinkId && x.available);
   if (!d) sel.drinkId = null;
-  $('tempWrap').classList.toggle('hidden', !d);
+  $('tempWrap').classList.toggle('hidden', !d || d.temps.length < 2);
   $('milkWrap').classList.toggle('hidden', !d || !d.milk || !S.milks.length);
+  $('flavorWrap').classList.toggle('hidden', !d || !d.flavors || !S.flavors.length);
   $('sizeWrap').classList.toggle('hidden', !d || !S.sizes.length);
   if (d) {
     if (!d.temps.includes(sel.temp)) sel.temp = d.temps[0];
@@ -95,6 +105,18 @@ function renderForm() {
     chips($('temps'), d.temps, 'temp', renderForm);
     chips($('milks'), S.milks, 'milk', renderForm);
     chips($('sizes'), S.sizes, 'size', renderForm);
+    const fl = $('flavors');
+    fl.innerHTML = '';
+    S.flavors.forEach((f) => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (sel.flavors.includes(f) ? ' on' : '');
+      c.textContent = f;
+      c.onclick = () => {
+        sel.flavors = sel.flavors.includes(f) ? sel.flavors.filter((x) => x !== f) : [...sel.flavors, f];
+        renderForm();
+      };
+      fl.appendChild(c);
+    });
   }
   const mine = myOrder();
   const blocked = mine && ['waiting', 'making', 'ready'].includes(mine.status);
@@ -156,7 +178,7 @@ $('form').onsubmit = async (e) => {
   $('submit').disabled = true;
   const r = await fetch('/api/orders', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: $('name').value, drinkId: sel.drinkId, temp: sel.temp, milk: sel.milk, size: sel.size, notes: $('notes').value }),
+    body: JSON.stringify({ name: $('name').value, drinkId: sel.drinkId, temp: sel.temp, milk: sel.milk, size: sel.size, flavors: sel.flavors, notes: $('notes').value }),
   });
   const j = await r.json();
   if (!r.ok) { $('err').textContent = j.error; renderForm(); return; }

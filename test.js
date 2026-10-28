@@ -11,9 +11,17 @@ server.listen(0, async () => {
   }).then(async (r) => ({ status: r.status, body: await r.json() }));
   const admin = { 'x-admin-key': 'pw' };
   try {
-    let r = await j('/api/orders', { name: 'Ann', drinkId: 'latte', temp: 'iced', milk: 'Oat', size: 'Large' });
+    let r = await j('/api/orders', { name: 'Ann', drinkId: 'latte', temp: 'iced', milk: 'Oat', size: 'Large', flavors: ['Vanilla', 'Bogus'] });
     assert.equal(r.status, 201);
     const annId = r.body.id;
+    r = await j('/api/admin/state', null, { 'x-admin-key': 'pw' });
+    assert.deepEqual(r.body.orders[0].flavors, ['Vanilla'], 'only listed flavors kept');
+    r = await j('/api/orders', { name: 'Sig', drinkId: 'honey-honey', flavors: ['Maple'] });
+    assert.equal(r.status, 201);
+    r = await j('/api/admin/state', null, { 'x-admin-key': 'pw' });
+    assert.deepEqual(r.body.orders[1].flavors, [], 'signature drinks have fixed recipe');
+    assert.equal(r.body.orders[1].recipe, 'Honey, vanilla bean paste, sea salt');
+    await j('/api/admin/orders/' + r.body.orders[1].id, { status: 'cancelled' }, { 'x-admin-key': 'pw' });
     r = await j('/api/orders', { name: 'ann', drinkId: 'espresso' });
     assert.equal(r.status, 409, 'one active order per person');
     r = await j('/api/orders', { name: 'Bob', drinkId: 'espresso' });

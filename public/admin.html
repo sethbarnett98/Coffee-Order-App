@@ -43,6 +43,8 @@
       <input type="text" id="message" maxlength="200" placeholder="Back Monday at 8am!">
       <label for="milks">Milk options (comma separated)</label>
       <input type="text" id="milks">
+      <label for="flavors">Flavors (comma separated)</label>
+      <input type="text" id="flavors">
       <label for="sizes">Sizes (comma separated)</label>
       <input type="text" id="sizes">
       <button id="saveSettings" class="primary">Save settings</button>
@@ -80,7 +82,10 @@ function beep() {
   if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
 }
 
-const desc = (o) => [o.size, o.temp, o.milk && o.milk + ' milk', o.drinkName].filter(Boolean).join(' ');
+const desc = (o) => {
+  const extras = [o.milk && o.milk + ' milk', ...(o.flavors || [])].filter(Boolean);
+  return [o.size, o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+};
 const NEXT = { waiting: ['making', 'Start'], making: ['ready', 'Ready'], ready: ['picked_up', 'Picked up'] };
 
 function render() {
@@ -96,7 +101,7 @@ function render() {
     const d = document.createElement('div');
     d.className = 'card' + (o.isNew ? ' new' : '');
     d.innerHTML = `<div class="row"><div><b>#${o.number} ${esc(o.name)}</b><div>${esc(desc(o))}</div>
-      ${o.notes ? `<div class="muted">📝 ${esc(o.notes)}</div>` : ''}</div>
+      ${o.recipe ? `<div class="muted">Recipe: ${esc(o.recipe)}</div>` : ''}${o.notes ? `<div class="muted">📝 ${esc(o.notes)}</div>` : ''}</div>
       <span class="pill ${o.status}">${o.status}</span></div>
       <div class="actions"><button data-a="next">${n[1]}</button><button data-a="cancelled" class="small">Cancel</button></div>`;
     d.querySelector('[data-a=next]').onclick = () => setStatus(o.id, n[0]);
@@ -111,6 +116,7 @@ function render() {
   if (document.activeElement.tagName !== 'INPUT') {
     $('message').value = S.message;
     $('milks').value = S.milks.join(', ');
+    $('flavors').value = S.flavors.join(', ');
     $('sizes').value = S.sizes.join(', ');
   }
   if (!menuDraft) { menuDraft = JSON.parse(JSON.stringify(S.menu)); renderMenu(); }
@@ -122,8 +128,10 @@ function renderMenu() {
   menuDraft.forEach((it, i) => {
     const d = document.createElement('div');
     d.className = 'card';
-    d.innerHTML = `<input type="text" placeholder="Drink name" value="${esc(it.name)}" data-f="name">
+    d.innerHTML = `<div class="actions" style="margin-top:0"><input type="text" placeholder="🙂" value="${esc(it.emoji || '')}" data-f="emoji" style="width:70px"><input type="text" placeholder="Drink name" value="${esc(it.name)}" data-f="name" style="flex:1"></div>
+      <input type="text" placeholder="Menu section (e.g. Classics)" value="${esc(it.section || '')}" data-f="section" style="margin-top:6px">
       <input type="text" placeholder="Short description" value="${esc(it.desc)}" data-f="desc" style="margin-top:6px">
+      <input type="text" placeholder="Fixed recipe for signature drinks (optional)" value="${esc(it.recipe || '')}" data-f="recipe" style="margin-top:6px">
       <div class="actions">
         <label style="margin:0"><input type="checkbox" data-f="hot" ${it.temps.includes('hot') ? 'checked' : ''}> hot</label>
         <label style="margin:0"><input type="checkbox" data-f="iced" ${it.temps.includes('iced') ? 'checked' : ''}> iced</label>
@@ -134,8 +142,8 @@ function renderMenu() {
     d.querySelectorAll('[data-f]').forEach((inp) => {
       const f = inp.dataset.f;
       inp.onchange = inp.oninput = () => {
-        if (f === 'name' || f === 'desc') it[f] = inp.value;
-        else if (f === 'milk' || f === 'available') it[f] = inp.checked;
+        if (['name', 'desc', 'emoji', 'section', 'recipe'].includes(f)) it[f] = inp.value;
+        else if (f === 'milk' || f === 'available' || f === 'flavors') it[f] = inp.checked;
         else if (f === 'hot' || f === 'iced') it.temps = ['hot', 'iced'].filter((t) => d.querySelector(`[data-f=${t}]`).checked);
       };
       if (f === 'del') inp.onclick = () => { menuDraft.splice(i, 1); renderMenu(); };
@@ -180,9 +188,9 @@ $('soundBtn').onclick = () => {
 };
 $('saveSettings').onclick = async () => {
   const list = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
-  await api('settings', { message: $('message').value, milks: list($('milks').value), sizes: list($('sizes').value) });
+  await api('settings', { message: $('message').value, milks: list($('milks').value), flavors: list($('flavors').value), sizes: list($('sizes').value) });
 };
-$('addItem').onclick = () => { menuDraft.push({ id: '', name: '', desc: '', temps: ['hot'], milk: false, available: true }); renderMenu(); };
+$('addItem').onclick = () => { menuDraft.push({ id: '', name: '', emoji: '', section: 'Classics', desc: '', temps: ['hot'], milk: false, flavors: true, recipe: '', available: true }); renderMenu(); };
 $('saveMenu').onclick = async () => {
   const r = await api('menu', { menu: menuDraft });
   menuDraft = null;

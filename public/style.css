@@ -70,3 +70,8 @@ button.small { padding:8px 12px; font-size:.72rem; }
 .hidden { display:none !important; }
 @keyframes glow { 0% { box-shadow:0 0 36px rgba(214,160,80,.7); } 100% { box-shadow:none; } }
 .new { animation:glow 2.5s ease-out; }
+
+.section { font:600 .8rem var(--serif); letter-spacing:.3em; text-transform:uppercase; color:var(--accent); text-align:center; margin:22px 0 4px; }
+.section::before, .section::after { content:'·'; margin:0 10px; }
+.drink .emoji { font-size:1.5rem; width:2rem; text-align:center; flex:none; filter:saturate(.7); }
+.drink .dtext { flex:1; }
