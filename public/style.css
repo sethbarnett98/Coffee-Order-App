@@ -74,7 +74,7 @@ button.small { padding:8px 12px; font-size:.72rem; }
 
 .section { font:600 .8rem var(--serif); letter-spacing:.3em; text-transform:uppercase; color:var(--accent); text-align:center; margin:22px 0 4px; }
 .section::before, .section::after { content:'·'; margin:0 10px; }
-.drink .emoji { font-size:1.5rem; width:2rem; text-align:center; flex:none; filter:grayscale(1) contrast(1.1); }
+.drink .emoji { font-size:1.5rem; width:2rem; text-align:center; flex:none; }
 .drink .dtext { flex:1; }
 .hero .caps.date { margin:2px 0 0; }
 .hero .caps.date { font-variant-numeric:lining-nums; font-size:.95rem; }
