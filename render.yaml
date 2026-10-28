@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: coffee-order-app
+    runtime: node
+    plan: free
+    buildCommand: "true"
+    startCommand: node server.js
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: NTFY_TOPIC
+        sync: false

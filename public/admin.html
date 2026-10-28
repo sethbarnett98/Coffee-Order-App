@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barista Dashboard</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>🧑‍🍳 Barista dashboard</h1>
+
+  <form id="login" class="card">
+    <label for="pw">Admin password</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <button class="primary" type="submit">Unlock</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+
+  <div id="app" class="hidden">
+    <div class="card row">
+      <div><b id="acceptLabel"></b><div class="muted" id="count"></div></div>
+      <div class="actions">
+        <button id="toggleAccept"></button>
+        <button id="soundBtn" class="small">🔔 Enable sound</button>
+      </div>
+    </div>
+
+    <h2>Queue</h2>
+    <div id="queue"></div>
+
+    <h2>Recently finished</h2>
+    <div id="finished"></div>
+    <div class="actions"><button id="clearBtn" class="small">Clear finished orders</button></div>
+
+    <h2>Settings</h2>
+    <div class="card">
+      <label for="message">Message shown when closed</label>
+      <input type="text" id="message" maxlength="200" placeholder="Back Monday at 8am!">
+      <label for="milks">Milk options (comma separated)</label>
+      <input type="text" id="milks">
+      <label for="sizes">Sizes (comma separated)</label>
+      <input type="text" id="sizes">
+      <button id="saveSettings" class="primary">Save settings</button>
+    </div>
+
+    <h2>Menu</h2>
+    <div id="menuEditor"></div>
+    <div class="actions">
+      <button id="addItem">+ Add drink</button>
+      <button id="saveMenu" class="primary" style="width:auto;margin:0">Save menu</button>
+    </div>
+    <p class="muted" id="menuMsg"></p>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let key = sessionStorage.getItem('adminKey') || '';
+let S = null, menuDraft = null, firstLoad = true, seen = new Set(), audio = null, soundOn = false;
+
+const api = (path, body) => fetch('/api/admin/' + path, {
+  method: body ? 'POST' : 'GET',
+  headers: { 'x-admin-key': key, 'Content-Type': 'application/json' },
+  body: body ? JSON.stringify(body) : undefined,
+});
+
+function beep() {
+  if (!soundOn || !audio) return;
+  [0, 0.25].forEach((t) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = 880; g.gain.value = 0.2;
+    o.connect(g); g.connect(audio.destination);
+    o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.15);
+  });
+  if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+}
+
+const desc = (o) => [o.size, o.temp, o.milk && o.milk + ' milk', o.drinkName].filter(Boolean).join(' ');
+const NEXT = { waiting: ['making', 'Start'], making: ['ready', 'Ready'], ready: ['picked_up', 'Picked up'] };
+
+function render() {
+  const active = S.orders.filter((o) => ['waiting', 'making', 'ready'].includes(o.status));
+  $('acceptLabel').textContent = S.accepting ? '🟢 Accepting orders' : '🔴 Orders closed';
+  $('toggleAccept').textContent = S.accepting ? 'Close ordering' : 'Open ordering';
+  $('count').textContent = `${active.length} in queue`;
+  document.title = active.length ? `(${active.length}) Barista` : 'Barista Dashboard';
+
+  $('queue').innerHTML = active.length ? '' : '<p class="muted">No orders waiting. Time to sip.</p>';
+  active.forEach((o) => {
+    const n = NEXT[o.status];
+    const d = document.createElement('div');
+    d.className = 'card' + (o.isNew ? ' new' : '');
+    d.innerHTML = `<div class="row"><div><b>#${o.number} ${esc(o.name)}</b><div>${esc(desc(o))}</div>
+      ${o.notes ? `<div class="muted">📝 ${esc(o.notes)}</div>` : ''}</div>
+      <span class="pill ${o.status}">${o.status}</span></div>
+      <div class="actions"><button data-a="next">${n[1]}</button><button data-a="cancelled" class="small">Cancel</button></div>`;
+    d.querySelector('[data-a=next]').onclick = () => setStatus(o.id, n[0]);
+    d.querySelector('[data-a=cancelled]').onclick = () => confirm(`Cancel ${o.name}'s order?`) && setStatus(o.id, 'cancelled');
+    $('queue').appendChild(d);
+  });
+
+  const done = S.orders.filter((o) => ['picked_up', 'cancelled'].includes(o.status)).slice(-15).reverse();
+  $('finished').innerHTML = done.map((o) =>
+    `<div class="card row muted"><span>#${o.number} ${esc(o.name)}: ${esc(desc(o))}</span><span>${o.status.replace('_', ' ')}</span></div>`).join('') || '<p class="muted">None yet.</p>';
+
+  if (document.activeElement.tagName !== 'INPUT') {
+    $('message').value = S.message;
+    $('milks').value = S.milks.join(', ');
+    $('sizes').value = S.sizes.join(', ');
+  }
+  if (!menuDraft) { menuDraft = JSON.parse(JSON.stringify(S.menu)); renderMenu(); }
+}
+
+function renderMenu() {
+  const el = $('menuEditor');
+  el.innerHTML = '';
+  menuDraft.forEach((it, i) => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    d.innerHTML = `<input type="text" placeholder="Drink name" value="${esc(it.name)}" data-f="name">
+      <input type="text" placeholder="Short description" value="${esc(it.desc)}" data-f="desc" style="margin-top:6px">
+      <div class="actions">
+        <label style="margin:0"><input type="checkbox" data-f="hot" ${it.temps.includes('hot') ? 'checked' : ''}> hot</label>
+        <label style="margin:0"><input type="checkbox" data-f="iced" ${it.temps.includes('iced') ? 'checked' : ''}> iced</label>
+        <label style="margin:0"><input type="checkbox" data-f="milk" ${it.milk ? 'checked' : ''}> asks milk</label>
+        <label style="margin:0"><input type="checkbox" data-f="available" ${it.available ? 'checked' : ''}> available</label>
+        <button class="small" data-f="del">Remove</button>
+      </div>`;
+    d.querySelectorAll('[data-f]').forEach((inp) => {
+      const f = inp.dataset.f;
+      inp.onchange = inp.oninput = () => {
+        if (f === 'name' || f === 'desc') it[f] = inp.value;
+        else if (f === 'milk' || f === 'available') it[f] = inp.checked;
+        else if (f === 'hot' || f === 'iced') it.temps = ['hot', 'iced'].filter((t) => d.querySelector(`[data-f=${t}]`).checked);
+      };
+      if (f === 'del') inp.onclick = () => { menuDraft.splice(i, 1); renderMenu(); };
+    });
+    el.appendChild(d);
+  });
+}
+
+async function setStatus(id, status) { await api('orders/' + id, { status }); }
+
+function connect() {
+  const es = new EventSource('/api/admin/stream?key=' + encodeURIComponent(key));
+  es.onmessage = (e) => {
+    S = JSON.parse(e.data);
+    const ids = new Set(S.orders.map((o) => o.id));
+    S.orders.forEach((o) => { o.isNew = !firstLoad && !seen.has(o.id); });
+    if (S.orders.some((o) => o.isNew)) beep();
+    seen = ids; firstLoad = false;
+    render();
+  };
+}
+
+async function unlock(k) {
+  key = k;
+  const r = await api('state');
+  if (!r.ok) { sessionStorage.removeItem('adminKey'); return false; }
+  sessionStorage.setItem('adminKey', key);
+  $('login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  connect();
+  return true;
+}
+
+$('login').onsubmit = async (e) => {
+  e.preventDefault();
+  $('loginErr').textContent = (await unlock($('pw').value)) ? '' : 'Wrong password.';
+};
+$('toggleAccept').onclick = () => api('settings', { accepting: !S.accepting });
+$('soundBtn').onclick = () => {
+  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  soundOn = true; beep(); $('soundBtn').textContent = '🔔 Sound on';
+};
+$('saveSettings').onclick = async () => {
+  const list = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+  await api('settings', { message: $('message').value, milks: list($('milks').value), sizes: list($('sizes').value) });
+};
+$('addItem').onclick = () => { menuDraft.push({ id: '', name: '', desc: '', temps: ['hot'], milk: false, available: true }); renderMenu(); };
+$('saveMenu').onclick = async () => {
+  const r = await api('menu', { menu: menuDraft });
+  menuDraft = null;
+  $('menuMsg').textContent = r.ok ? 'Menu saved ✔' : 'Could not save menu.';
+};
+$('clearBtn').onclick = () => confirm('Clear all finished orders from the list?') && api('clear', {});
+
+if (key) unlock(key);
+</script>
+</body>
+</html>

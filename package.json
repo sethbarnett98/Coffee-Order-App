@@ -1,0 +1,12 @@
+{
+  "name": "coffee-order-app",
+  "version": "1.0.0",
+  "description": "Guest coffee ordering queue for a home espresso bar",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
