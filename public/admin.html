@@ -12,7 +12,7 @@
 </head>
 <body>
 <main>
-  <header class="hero"><h1 class="script">Mr. + Mrs. Shelburne</h1><p class="caps date">11.1.26 · Barista</p><div class="ornament"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M16 17C13 12 12.5 7 16 2c3.5 5 3 10 0 15z"/><path d="M16 17C10 16 5.5 12.5 4 7c6 .5 10 4 12 10z"/><path d="M16 17c6-1 10.500-4.500 12-10-6 .5-10 4-12 10z"/><path d="M16 17c-3 3-3.500 8-1 13M16 17c3 3 3.500 8 1 13" opacity=".6"/><path d="M16 17v7" opacity=".6"/></svg></div></header>
+  <header class="hero"><h1 class="script">Mr. + Mrs. Shelburne</h1><p class="caps date">11.1.26 · Barista</p><img class="lily small" src="/lily.png" alt="" width="105" height="150"></header>
 
   <form id="login" class="card">
     <label for="pw">Admin password</label>
@@ -82,7 +82,7 @@ function beep() {
 
 const desc = (o) => {
   const extras = [o.milk && o.milk + ' milk', ...(o.flavors || [])].filter(Boolean);
-  return [o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+  return [o.temp && o.temp[0].toUpperCase() + o.temp.slice(1), o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 };
 const NEXT = { waiting: ['making', 'Start'], making: ['ready', 'Ready'], ready: ['picked_up', 'Picked up'] };
 

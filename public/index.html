@@ -15,7 +15,7 @@
   <header class="hero">
     <h1 class="script">Mr. + Mrs. Shelburne</h1>
     <p class="caps date">11.1.26</p>
-    <div class="ornament"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M16 17C13 12 12.5 7 16 2c3.5 5 3 10 0 15z"/><path d="M16 17C10 16 5.5 12.5 4 7c6 .5 10 4 12 10z"/><path d="M16 17c6-1 10.500-4.500 12-10-6 .5-10 4-12 10z"/><path d="M16 17c-3 3-3.500 8-1 13M16 17c3 3 3.500 8 1 13" opacity=".6"/><path d="M16 17v7" opacity=".6"/></svg></div>
+    <img class="lily" src="/lily.png" alt="" width="105" height="150">
     <p class="sub">Freshly pulled espresso, made to order</p>
   </header>
   <div id="closed" class="banner hidden"></div>
@@ -61,12 +61,12 @@ let lastStatus = null;
 const LABEL = { waiting: 'In the queue', making: 'Being prepared', ready: 'Your coffee is ready', picked_up: 'Enjoy, with our love', cancelled: 'Cancelled' };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-function chips(el, items, key, onPick) {
+function chips(el, items, key, onPick, label = (v) => v) {
   el.innerHTML = '';
   items.forEach((v) => {
     const b = document.createElement('div');
     b.className = 'chip' + (sel[key] === v ? ' on' : '');
-    b.textContent = v;
+    b.textContent = label(v);
     b.onclick = () => { sel[key] = v; onPick(); };
     el.appendChild(b);
   });
@@ -101,8 +101,8 @@ function renderForm() {
   if (d && d.recipe) $('recipe').textContent = d.recipe + ' (already included, no extra flavors)';
   if (d) {
     if (!d.temps.includes(sel.temp)) sel.temp = d.temps[0];
-    if (!S.milks.includes(sel.milk)) sel.milk = S.milks[0];
-    chips($('temps'), d.temps, 'temp', renderForm);
+    if (!S.milks.includes(sel.milk)) sel.milk = null;
+    chips($('temps'), d.temps, 'temp', renderForm, (v) => v[0].toUpperCase() + v.slice(1));
     chips($('milks'), S.milks, 'milk', renderForm);
     const fl = $('flavors');
     fl.innerHTML = '';
@@ -119,8 +119,9 @@ function renderForm() {
   }
   const mine = myOrder();
   const blocked = mine && ['waiting', 'making', 'ready'].includes(mine.status);
-  $('submit').disabled = !S.accepting || !sel.drinkId || blocked;
-  $('submit').textContent = blocked ? 'You have a drink in the queue' : 'Place order';
+  const needsMilk = d && d.milk && S.milks.length && !sel.milk;
+  $('submit').disabled = !S.accepting || !sel.drinkId || blocked || needsMilk;
+  $('submit').textContent = blocked ? 'You have a drink in the queue' : needsMilk ? 'Choose a milk' : 'Place order';
 }
 
 function myOrder() {

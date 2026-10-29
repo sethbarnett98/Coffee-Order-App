@@ -16,12 +16,14 @@ server.listen(0, async () => {
     const annId = r.body.id;
     r = await j('/api/admin/state', null, { 'x-admin-key': 'pw' });
     assert.deepEqual(r.body.orders[0].flavors, ['Vanilla'], 'only listed flavors kept');
-    r = await j('/api/orders', { name: 'Sig', drinkId: 'honey-honey', flavors: ['Maple'] });
+    r = await j('/api/orders', { name: 'Sig', drinkId: 'honey-honey', milk: 'Whole', flavors: ['Maple'] });
     assert.equal(r.status, 201);
     r = await j('/api/admin/state', null, { 'x-admin-key': 'pw' });
     assert.deepEqual(r.body.orders[1].flavors, [], 'signature drinks have fixed recipe');
     assert.equal(r.body.orders[1].recipe, 'Honey, vanilla bean paste, sea salt');
     await j('/api/admin/orders/' + r.body.orders[1].id, { status: 'cancelled' }, { 'x-admin-key': 'pw' });
+    r = await j('/api/orders', { name: 'Milkless', drinkId: 'latte' });
+    assert.equal(r.status, 400, 'milk drinks require a milk');
     r = await j('/api/orders', { name: 'ann', drinkId: 'espresso' });
     assert.equal(r.status, 409, 'one active order per person');
     r = await j('/api/orders', { name: 'Bob', drinkId: 'espresso' });
@@ -34,9 +36,9 @@ server.listen(0, async () => {
     }
     r = await j('/api/state');
     assert.equal(r.body.queue.length, 1);
-    assert.equal((await j('/api/orders', { name: 'Ann', drinkId: 'latte' })).status, 201, 'can reorder after pickup');
+    assert.equal((await j('/api/orders', { name: 'Ann', drinkId: 'latte', milk: 'Oat' })).status, 201, 'can reorder after pickup');
     await j('/api/admin/settings', { accepting: false, message: 'Closed' }, admin);
-    assert.equal((await j('/api/orders', { name: 'Cy', drinkId: 'latte' })).status, 403);
+    assert.equal((await j('/api/orders', { name: 'Cy', drinkId: 'latte', milk: 'Oat' })).status, 403);
     console.log('all tests passed');
   } catch (e) { console.error(e); process.exitCode = 1; }
   server.close(); setTimeout(() => process.exit(), 300);
