@@ -12,7 +12,16 @@
 </head>
 <body>
 <main>
-  <header class="hero"><h1 class="script">Mr. + Mrs. Shelburne</h1><p class="caps date">11.1.26 · Barista</p><div class="ornament"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M16 17C13 12 12.5 7 16 2c3.5 5 3 10 0 15z"/><path d="M16 17C10 16 5.5 12.5 4 7c6 .5 10 4 12 10z"/><path d="M16 17c6-1 10.500-4.500 12-10-6 .5-10 4-12 10z"/><path d="M16 17c-3 3-3.500 8-1 13M16 17c3 3 3.500 8 1 13" opacity=".6"/><path d="M16 17v7" opacity=".6"/></svg></div></header>
+  <header class="hero"><h1 class="script">Mr. + Mrs. Shelburne</h1><p class="caps date">11.1.26 · Barista</p><div class="ornament"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 40C26 31 26 15 33 4C38 15 37 31 32 40z"/>
+<path d="M32 40C43 40 55 33 62 21C52 24 40 28 32 40z"/>
+<path d="M32 40C21 40 9 33 2 21C12 24 24 28 32 40z"/>
+<path d="M32 40C41 43 49 50 51 61C42 57 34 50 32 40z" opacity=".8"/>
+<path d="M32 40C23 43 15 50 13 61C22 57 30 50 32 40z" opacity=".8"/>
+<path d="M32 38V14M32 37C28 30 25 23 22 18M32 37C36 30 39 23 42 18M32 38C37 33 45 29 53 27M32 38C27 33 19 29 11 27" opacity=".45"/>
+<path d="M32 40C30 34 26 28 22 24M32 40C34 34 38 28 42 24M32 40C32 33 32 27 32 22"/>
+<ellipse cx="21.200" cy="23.200" rx=".9" ry="2.700" transform="rotate(-40 21.200 23.200)"/>
+<ellipse cx="42.800" cy="23.200" rx=".9" ry="2.700" transform="rotate(40 42.800 23.200)"/>
+<ellipse cx="32" cy="20.500" rx=".9" ry="2.700"/></svg></div></header>
 
   <form id="login" class="card">
     <label for="pw">Admin password</label>
@@ -82,7 +91,7 @@ function beep() {
 
 const desc = (o) => {
   const extras = [o.milk && o.milk + ' milk', ...(o.flavors || [])].filter(Boolean);
-  return [o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+  return [o.temp && o.temp[0].toUpperCase() + o.temp.slice(1), o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 };
 const NEXT = { waiting: ['making', 'Start'], making: ['ready', 'Ready'], ready: ['picked_up', 'Picked up'] };
 

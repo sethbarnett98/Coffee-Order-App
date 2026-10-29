@@ -18,19 +18,19 @@ const STATUSES = [...ACTIVE, 'picked_up', 'cancelled'];
 const defaultState = () => ({
   accepting: true,
   message: '',
-  milks: ['Whole', 'Oat', 'Almond', 'Skim'],
+  milks: ['Whole', 'Oat'],
   flavors: ['Pumpkin Spice', 'Vanilla', 'Honey', 'Cinnamon', 'Maple', 'Sea Salt', 'Blueberry', 'Brown Sugar'],
   menu: [
     { id: 'espresso', name: 'Espresso', emoji: '☕', section: 'Classics', desc: 'A straight shot', temps: ['hot'], milk: false, flavors: true, recipe: '', available: true },
     { id: 'latte', name: 'Latte', emoji: '🥛', section: 'Classics', desc: 'Espresso with steamed milk', temps: ['hot', 'iced'], milk: true, flavors: true, recipe: '', available: true },
     { id: 'cappuccino', name: 'Cappuccino', emoji: '☁️', section: 'Classics', desc: 'Espresso with airy foam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
-    { id: 'flat-white', name: 'Flat White', emoji: '🤍', section: 'Classics', desc: 'Velvety microfoam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
-    { id: 'americano', name: 'Americano', emoji: '💧', section: 'Classics', desc: 'Espresso with hot water', temps: ['hot', 'iced'], milk: false, flavors: true, recipe: '', available: true },
+    { id: 'flat-white', name: 'Flat White', emoji: '🤍', section: 'Classics', desc: 'Espresso with velvety microfoam', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
+    { id: 'americano', name: 'Americano', emoji: '💧', section: 'Classics', desc: 'Espresso with water', temps: ['hot', 'iced'], milk: false, flavors: true, recipe: '', available: true },
     { id: 'cortado', name: 'Cortado', emoji: '🫘', section: 'Classics', desc: 'Espresso with equal parts steamed milk', temps: ['hot'], milk: true, flavors: true, recipe: '', available: true },
-    { id: 'honey-honey', name: '“Honey, Honey”', emoji: '🍯', section: 'Wedding Weekend', desc: 'Latte with honey, vanilla bean paste and sea salt', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Honey, vanilla bean paste, sea salt', available: true },
-    { id: 'sunday-morning-toast', name: '“Sunday Morning Toast”', emoji: '🥂', section: 'Wedding Weekend', desc: 'Cappuccino with brown sugar, maple syrup and cinnamon', temps: ['hot'], milk: true, flavors: false, recipe: 'Brown sugar, maple syrup, cinnamon', available: true },
-    { id: 'woodbine-maple', name: '“Woodbine Maple”', emoji: '🍁', section: 'Wedding Weekend', desc: 'Maple sea salt cortado', temps: ['hot'], milk: true, flavors: false, recipe: 'Maple, sea salt', available: true },
-    { id: 'something-blue', name: '“Something Blue”', emoji: '🫐', section: 'Wedding Weekend', desc: 'Latte with blueberry and vanilla', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Blueberry, vanilla', available: true },
+    { id: 'honey-honey', name: '“Honey, Honey”', emoji: '🍯', section: 'Shelburne Specials', desc: 'Latte with honey, vanilla bean paste and sea salt', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Honey, vanilla bean paste, sea salt', available: true },
+    { id: 'sunday-morning-toast', name: '“Sunday Morning Toast”', emoji: '🥂', section: 'Shelburne Specials', desc: 'Cappuccino with brown sugar, maple syrup and cinnamon', temps: ['hot'], milk: true, flavors: false, recipe: 'Brown sugar, maple syrup, cinnamon', available: true },
+    { id: 'woodbine-maple', name: '“Woodbine Maple”', emoji: '🍁', section: 'Shelburne Specials', desc: 'Maple sea salt cortado', temps: ['hot'], milk: true, flavors: false, recipe: 'Maple, sea salt', available: true },
+    { id: 'something-blue', name: '“Something Blue”', emoji: '🫐', section: 'Shelburne Specials', desc: 'Latte with blueberry and vanilla', temps: ['hot', 'iced'], milk: true, flavors: false, recipe: 'Blueberry, vanilla', available: true },
   ],
   orders: [],
   nextNumber: 1,
@@ -114,7 +114,7 @@ function notify(order) {
 }
 function describe(o) {
   const extras = [o.milk && `${o.milk} milk`, ...(o.flavors || [])].filter(Boolean);
-  return [o.temp, o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
+  return [o.temp && o.temp[0].toUpperCase() + o.temp.slice(1), o.drinkName].filter(Boolean).join(' ') + (extras.length ? ` (${extras.join(', ')})` : '');
 }
 
 // ---------- helpers ----------
@@ -157,7 +157,8 @@ async function handleApi(req, res, url) {
     const item = state.menu.find((m) => m.id === b.drinkId);
     if (!item || !item.available) return send(res, 400, { error: 'That drink is not available.' });
     const temp = item.temps.includes(b.temp) ? b.temp : item.temps[0];
-    const milk = item.milk ? (state.milks.includes(b.milk) ? b.milk : state.milks[0]) : '';
+    if (item.milk && state.milks.length && !state.milks.includes(b.milk)) return send(res, 400, { error: 'Please choose a milk.' });
+    const milk = item.milk && state.milks.length ? b.milk : '';
     if (state.orders.some((o) => ACTIVE.includes(o.status) && norm(o.name) === norm(name))) {
       return send(res, 409, { error: `${name} already has a drink in the queue. Once it's picked up you can order again!` });
     }

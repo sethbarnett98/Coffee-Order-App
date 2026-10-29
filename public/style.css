@@ -23,7 +23,7 @@ header.hero { text-align:center; padding:18px 0 6px; }
 .ornament { display:flex; align-items:center; gap:12px; justify-content:center; color:var(--accent); margin:14px 0 4px; }
 .ornament::before, .ornament::after { content:''; height:1px; width:70px; background:linear-gradient(90deg,transparent,var(--accent)); }
 .ornament::after { transform:scaleX(-1); }
-.ornament svg { width:26px; height:26px; }
+.ornament svg { width:46px; height:46px; }
 
 h1 { font:400 2.4rem var(--script); margin:6px 0; }
 h2 { font:600 .85rem var(--serif); letter-spacing:.3em; text-transform:uppercase; color:var(--white); text-align:center; margin:34px 0 12px; }
