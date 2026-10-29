@@ -240,7 +240,7 @@ async function handleApi(req, res, url) {
   return send(res, 404, { error: 'Not found.' });
 }
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
